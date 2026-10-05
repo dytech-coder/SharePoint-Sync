@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ APP_TITLE }}{% endblock %}</title>
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    {% block head %}{% endblock %}
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+
+    <!-- Navigation -->
+    <nav class="bg-blue-800 p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center text-white">
+            <a href="/" class="font-bold text-xl">{{ APP_TITLE }}</a>
+            {% if user %}
+            <div class="flex items-center space-x-4">
+                <span class="hidden sm:inline">Eingeloggt als <b>{{ user.name }}</b></span>
+                <!-- Profilbild; ohne Bild (404) bleibt der Kreis mit den Initialen stehen -->
+                <span class="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold overflow-hidden ring-2 ring-blue-300"
+                      title="{{ user.name }}">
+                    <span aria-hidden="true">{{ user.name | initials }}</span>
+                    <img src="/avatar" alt="" class="absolute inset-0 h-full w-full object-cover" onerror="this.remove()">
+                </span>
+                <a href="/logout" class="bg-blue-700 hover:bg-blue-600 px-3 py-1 rounded text-sm transition">Logout</a>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="container mx-auto mt-8 px-4 pb-12">
+        {% if flash %}
+        <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-900 p-4 mb-6 rounded">{{ flash }}</div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Ins Image gehoert nur das Programm. Zugangsdaten und Laufzeitdaten kommen ueber compose.yml
+# (env_file bzw. Volumes) in den Container und duerfen nicht ins Image gelangen.
+.env
+*.pfx
+*.cer
+config.json
+data/
+runs/
+logs/
+sharepoint_sync.log*
+.venv/
+__pycache__/
+deploy/
+.claude/
+.git/

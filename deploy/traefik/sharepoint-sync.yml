@@ -1,0 +1,49 @@
+# Traefik-Routing fuer die SharePoint-Sync Web-App, wenn sie ausserhalb von Docker laeuft (z.B. Windows-Server).
+#
+# Einrichtung auf dem Traefik-Host (/home/netadm/stacks/traefik):
+#
+# 1. Diese Datei ablegen als  ./data/dynamic/sharepoint-sync.yml
+#
+# 2. In compose.yml beim Dienst "traefik" ergaenzen:
+#      command:
+#        - "--providers.file.directory=/dynamic"
+#        - "--providers.file.watch=true"
+#      volumes:
+#        - ./data/dynamic:/dynamic:ro
+#
+# 3. docker compose up -d
+#    (spaetere Aenderungen an dieser Datei uebernimmt Traefik ohne Neustart)
+#
+# Voraussetzungen: DNS sync.contoso.com zeigt auf diesen Traefik-Host, Port 80 ist von aussen
+# erreichbar (Let's-Encrypt-HTTP-Challenge), und der Traefik-Host erreicht 192.0.2.10:8000.
+
+http:
+  routers:
+    sharepoint-sync:
+      rule: "Host(`sync.contoso.com`)"
+      entryPoints:
+        - websecure
+      service: sharepoint-sync
+      tls:
+        certResolver: letsencrypt
+
+    # http:// auf https:// umleiten
+    sharepoint-sync-http:
+      rule: "Host(`sync.contoso.com`)"
+      entryPoints:
+        - web
+      middlewares:
+        - sharepoint-sync-https-redirect
+      service: sharepoint-sync
+
+  middlewares:
+    sharepoint-sync-https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+  services:
+    sharepoint-sync:
+      loadBalancer:
+        servers:
+          - url: "http://192.0.2.10:8000"

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Kein Zugriff{% endblock %}
+
+{% block content %}
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Kein Zugriff</h2>
+        <p class="text-gray-700">
+            Das Konto <b>{{ account }}</b> ist für diese Anwendung nicht freigeschaltet.
+            Zugriff haben nur Mitglieder der berechtigten Gruppe – bitte wenden Sie sich an die IT.
+        </p>
+
+        <p class="mt-6">
+            <a href="/login?switch=1" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold transition">Mit einem anderen Konto anmelden</a>
+        </p>
+
+        <p class="text-xs text-gray-500 mt-6 border-t pt-3">
+            Hinweis für die IT:
+            {% if groups_missing %}
+            Das Anmelde-Token enthielt keine Gruppen – in der App-Registrierung fehlt der Gruppen-Claim (Tokenkonfiguration, für das ID-Token), oder der Benutzer ist in zu vielen Gruppen.
+            {% else %}
+            Das Anmelde-Token enthielt {{ groups_count }} Gruppe(n), die berechtigte Gruppe war nicht darunter. Eine geänderte Mitgliedschaft wirkt bei der nächsten Anmeldung.
+            {% endif %}
+        </p>
+    </div>
+{% endblock %}

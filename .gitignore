@@ -1,0 +1,23 @@
+# Zugangsdaten - niemals einchecken
+.env
+*.pfx
+*.cer
+
+# Laufzeitdaten (Sync-Projekte, Lauf-Historie, Logs)
+config.json
+config.json.tmp
+data/
+runs/
+logs/
+sharepoint_sync.log*
+
+# Python / lokale Umgebung
+.venv/
+__pycache__/
+*.pyc
+
+# Lokale Werkzeug-Einstellungen
+.claude/
+
+# Dokumentation (Typst) wird separat gepflegt
+docs/

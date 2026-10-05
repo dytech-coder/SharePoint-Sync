@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge %}
+
+{% block head %}
+{% if is_running %}<meta http-equiv="refresh" content="10">{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% if not access_restricted %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 p-4 mb-6 rounded text-sm">
+        <b>Zugriff nicht eingeschränkt:</b> Jeder Benutzer des Tenants kann sich anmelden und Sync-Projekte ändern.
+        Zum Einschränken <span class="font-mono">SYNC_ADMIN_GROUP_ID</span> in der <span class="font-mono">.env</span> setzen.
+    </div>
+    {% endif %}
+
+    <!-- Sync-Projekte -->
+    <section class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center border-b pb-2 mb-4">
+            <h2 class="text-2xl font-bold text-gray-800">Sync-Projekte</h2>
+            {% if can_edit %}
+            <a href="/projects/new" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold transition">+ Neues Projekt</a>
+            {% endif %}
+        </div>
+
+        {% if config %}
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {% for item in config %}
+            <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                <div class="flex justify-between items-start gap-3">
+                    <h3 class="font-bold text-lg text-blue-800">{{ item.name }}</h3>
+                    <div class="flex items-center gap-2 shrink-0">
+                        {% if not item.get("enabled", True) %}
+                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-700">Pausiert</span>
+                        {% endif %}
+                        {% if item.last %}{{ status_badge(item.last.pair.status) }}{% endif %}
+                    </div>
+                </div>
+
+                <div class="text-xs font-semibold text-gray-500 mt-3">Quelle</div>
+                <div class="text-sm font-mono text-gray-700 break-all">{{ item.source_folder }}</div>
+                <div class="text-xs font-semibold text-gray-500 mt-2">Ziel</div>
+                <div class="text-sm font-mono text-gray-700 break-all">{{ item.target_folder }}</div>
+
+                <div class="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 text-sm">
+                    <div class="text-gray-600">
+                        {% if item.last %}
+                        Letzter Lauf: <a href="/runs/{{ item.last.run_id }}" class="text-blue-700 hover:underline">{{ item.last.started | dt }}</a>
+                        {% else %}
+                        Noch kein Lauf aufgezeichnet
+                        {% endif %}
+                    </div>
+                    {% if can_edit %}
+                    <div class="flex items-center gap-3 shrink-0">
+                        <a href="/projects/{{ item.id }}/edit" class="text-blue-700 hover:underline font-semibold">Bearbeiten</a>
+                        <form action="/projects/{{ item.id }}/toggle" method="POST">
+                            <button type="submit" class="text-gray-700 hover:underline font-semibold">
+                                {{ "Pausieren" if item.get("enabled", True) else "Fortsetzen" }}
+                            </button>
+                        </form>
+                        <form action="/projects/{{ item.id }}/delete" method="POST" data-name="{{ item.name }}"
+                              onsubmit="return confirm('Sync-Projekt „' + this.dataset.name + '“ wirklich entfernen?');">
+                            <button type="submit" class="text-red-700 hover:underline font-semibold">Entfernen</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-600">Noch keine Sync-Projekte angelegt.</p>
+        {% endif %}
+    </section>
+
+    <!-- Läufe -->
+    <section class="bg-white rounded-lg shadow-md p-6 mt-8">
+        <div class="flex justify-between items-center border-b pb-2 mb-4">
+            <h2 class="text-2xl font-bold text-gray-800">Läufe</h2>
+            <button onclick="window.location.reload();" class="text-blue-600 hover:text-blue-800 font-semibold text-sm">
+                🔄 Aktualisieren
+            </button>
+        </div>
+
+        {% if runs %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="text-xs uppercase text-gray-500 border-b">
+                    <tr>
+                        <th class="py-2 pr-4">Start</th>
+                        <th class="py-2 pr-4">Status</th>
+                        <th class="py-2 pr-4">Projekte</th>
+                        <th class="py-2 pr-4 text-right">Kopiert</th>
+                        <th class="py-2 pr-4 text-right">Gelöscht</th>
+                        <th class="py-2 pr-4 text-right">Fehler</th>
+                        <th class="py-2 pr-4 text-right">Dauer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for run in runs %}
+                    <tr class="border-b last:border-0 hover:bg-blue-50 cursor-pointer" onclick="window.location='/runs/{{ run.id }}';">
+                        <td class="py-2 pr-4 whitespace-nowrap">
+                            <a href="/runs/{{ run.id }}" class="text-blue-700 hover:underline font-semibold">{{ run.started | dt }}</a>
+                        </td>
+                        <td class="py-2 pr-4">{{ status_badge(run.status) }}</td>
+                        <td class="py-2 pr-4 text-gray-700">
+                            {% for pair in run.pairs %}{{ pair.name }}{% if not loop.last %}, {% endif %}{% else %}–{% endfor %}
+                        </td>
+                        <td class="py-2 pr-4 text-right">{{ run.copied }}</td>
+                        <td class="py-2 pr-4 text-right">{{ run.deleted }}</td>
+                        <td class="py-2 pr-4 text-right {% if run.errors or run.failed_pairs %}text-red-700 font-semibold{% endif %}">{{ run.errors }}</td>
+                        <td class="py-2 pr-4 text-right whitespace-nowrap">{{ run.seconds | duration }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-600">Noch keine Läufe aufgezeichnet. Die Historie beginnt mit dem nächsten Start von <span class="font-mono">sync.py</span>.</p>
+        {% endif %}
+    </section>
+
+    <!-- Rohes Log -->
+    <details class="bg-white rounded-lg shadow-md p-6 mt-8">
+        <summary class="text-lg font-bold text-gray-800 cursor-pointer">System-Log (letzte 50 Zeilen)</summary>
+        <div class="bg-gray-900 rounded-lg p-4 mt-4 overflow-y-auto" style="max-height: 600px;">
+            <pre class="text-green-400 font-mono text-xs whitespace-pre-wrap">{% for line in logs %}{{ line }}{% else %}Noch keine Logs vorhanden. Der Sync-Job ist noch nicht gelaufen.{% endfor %}</pre>
+        </div>
+    </details>
+{% endblock %}

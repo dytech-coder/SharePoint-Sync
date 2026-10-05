@@ -1,0 +1,11 @@
+{% macro status_badge(status) %}
+{% set label = STATUS_LABELS.get(status, (status, "bg-gray-200 text-gray-700")) %}
+<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap {{ label[1] }}">{{ label[0] }}</span>
+{% endmacro %}
+
+{% macro stat(label, value, color="text-gray-800") %}
+<div class="bg-gray-50 border border-gray-200 rounded p-3">
+    <div class="text-xs uppercase tracking-wide text-gray-500">{{ label }}</div>
+    <div class="text-2xl font-bold {{ color }}">{{ value if value is not none else "–" }}</div>
+</div>
+{% endmacro %}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Hintergrund im Blau der Kopfzeile (Tailwind blue-800) -->
+  <rect width="64" height="64" rx="14" fill="#1e40af"/>
+  <!-- Zwei Pfeile im Kreis = Synchronisation -->
+  <g fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round">
+    <path d="M47.98 26.19 A17 17 0 0 0 17.4 22.5"/>
+    <path d="M16.02 37.81 A17 17 0 0 0 46.6 41.5"/>
+  </g>
+  <g fill="#ffffff">
+    <path d="M10.9 17.2 L23.6 19.4 L15.6 29.5 Z"/>
+    <path d="M53.1 46.8 L40.4 44.6 L48.4 34.5 Z"/>
+  </g>
+</svg>

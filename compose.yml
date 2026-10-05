@@ -1,0 +1,69 @@
+# SharePoint Sync hinter Traefik (Docker-Provider).
+#
+# Im Stack-Ordner muessen neben dieser Datei liegen:
+#   Dockerfile, .dockerignore, requirements.txt, sync.py, web_app.py, templates/, static/
+#   .env                  Einstellungen und Zugangsdaten - Vorlage: .env.example
+#   sp_sync_cert.pfx      Zertifikat mit privatem Schluessel
+#   data/                 Laufzeitdaten: config.json, runs/, sharepoint_sync.log - muss UID 1000 gehoeren:
+#                           mkdir -p data && sudo chown -R 1000:1000 data
+#
+# Die .env wird zweimal genutzt: von Docker Compose fuer die ${...}-Werte in dieser Datei
+# und (env_file) als Umgebung der Container.
+#
+# Start:  docker compose up -d --build
+
+services:
+  web:
+    build: .
+    image: sharepoint-sync:latest
+    restart: always
+    env_file: .env
+    environment:
+      # Oeffentliche Adresse - bestimmt die Ruecksprung-Adresse nach dem Microsoft-Login
+      PUBLIC_URL: https://${SYNC_HOSTNAME:?SYNC_HOSTNAME fehlt in der .env}
+      SP_CERT_PATH: /certs/sp_sync_cert.pfx
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - ./data:/data
+      - ./sp_sync_cert.pfx:/certs/sp_sync_cert.pfx:ro
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sharepoint-sync.rule=Host(`${SYNC_HOSTNAME}`)"
+      - "traefik.http.routers.sharepoint-sync.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.sharepoint-sync.tls=true"
+      - "traefik.http.routers.sharepoint-sync.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
+      - "traefik.http.services.sharepoint-sync.loadbalancer.server.port=8000"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-proxy}"
+
+  # Fuehrt sync.py in einer Schleife aus: nach jedem Lauf SYNC_INTERVAL_SECONDS warten, dann der naechste.
+  # Dadurch laufen nie zwei Syncs gleichzeitig.
+  sync:
+    # Dasselbe Image wie "web" (wird dort gebaut) - nicht aus einer Registry laden
+    image: sharepoint-sync:latest
+    pull_policy: never
+    restart: always
+    depends_on:
+      - web
+    # Leitet "docker compose stop" an den laufenden Sync weiter
+    init: true
+    env_file: .env
+    environment:
+      SP_CERT_PATH: /certs/sp_sync_cert.pfx
+      TZ: ${TZ:-Europe/Berlin}
+      # Pause zwischen zwei Laeufen (Standard 14400 Sekunden = 4 Stunden)
+      SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-14400}
+    volumes:
+      - ./data:/data
+      - ./sp_sync_cert.pfx:/certs/sp_sync_cert.pfx:ro
+    command: ["sh", "-c", "while true; do python /app/sync.py; sleep \"$${SYNC_INTERVAL_SECONDS}\"; done"]
+    labels:
+      # Traefik wuerde sonst auch fuer diesen Container eine Route anlegen
+      - "traefik.enable=false"
+
+networks:
+  proxy:
+    external: true
+    # Name des Docker-Netzes, in dem Traefik die Container erreicht
+    name: ${TRAEFIK_NETWORK:-proxy}
